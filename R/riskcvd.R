@@ -6,31 +6,60 @@ input <- read.delim(file = "data/input.txt", header = T, sep = "\t", dec = ".")
 
 # read the fixed coefficients
 coeff <- read.delim(file = "data/lookup_table.txt", header = T, sep = "\t", dec = ".")
-
-# set the fixed coefficients for males
-if_else(input$gender == "m", 
-        coeff_cvd <- coeff %>%
-          filter(disease == "cvd") %>% 
-          select(coeff, male), 
-        coeff_cvd <- coeff %>%
-          filter(disease == "cvd") %>% 
-          select(coeff, female))
-
 # transpose coeff data to better access values
 rownames(coeff_cvd) <- coeff_cvd$coeff
 coeff_cvd$coeff <- NULL
 coeff_cvd <- t(coeff_cvd)
 
-# calculate the params*coefficients summary
-sum <- as.numeric(coeff_cvd[,1])*input$age + as.numeric(coeff_cvd[,2])*input$bpmax + as.numeric(coeff_cvd[,3])*input$tc + as.numeric(coeff_cvd[,4])*input$hdl + as.numeric(coeff_cvd[,5])*input$smoke + as.numeric(coeff_cvd[,6])*input$t2d + as.numeric(coeff_cvd[,7])*input$hypdrug
+### function
 
-# calculate the absolute risk RA
-RA <- 1 - (as.numeric(coeff_cvd[,8])^(exp(sum - as.numeric(coeff_cvd[,9]))))
+riskcvd <- function(input, coeff) {
+  
+  # select cvd specific coeffs
+  coeff_cvd <- coeff %>%
+    dplyr::filter(disease == "cvd") %>% 
+    select(coeff, male, female)
+  rownames(coeff_cvd) <- coeff_cvd$coeff
+  coeff_cvd$coeff <- NULL
+  coeff_cvd <- as.numeric(as.matrix(coeff_cvd))
 
-# calculate the relative risk RR
-# please note: do not hard code here this value
-# the cnditional extraction from "coeff" dataframe should be implemented
-RR <- RA/0.08
+  # calculations for MALE
+  # calculate the params*coefficients summary
+  sum_m <- as.numeric(coeff_cvd[1])*input$age + 
+    as.numeric(coeff_cvd[2])*input$bpmax + 
+    as.numeric(coeff_cvd[3])*input$tc + 
+    as.numeric(coeff_cvd[4])*input$hdl + 
+    as.numeric(coeff_cvd[5])*input$smoke + 
+    as.numeric(coeff_cvd[6])*input$t2d + 
+    as.numeric(coeff_cvd[7])*input$hypdrug
+  # calculate the absolute risk RA
+  RA_m <- 1 - (as.numeric(coeff_cvd[8])^(exp(sum_m - as.numeric(coeff_cvd[9]))))
+  # calculate the relative risk RR
+  RR_m <- RA/0.08
+  
+  # calculations for FEMALE
+  # calculate the params*coefficients summary
+  sum_f <- as.numeric(coeff_cvd[10])*input$age + 
+    as.numeric(coeff_cvd[11])*input$bpmax + 
+    as.numeric(coeff_cvd[12])*input$tc + 
+    as.numeric(coeff_cvd[13])*input$hdl + 
+    as.numeric(coeff_cvd[14])*input$smoke + 
+    as.numeric(coeff_cvd[15])*input$t2d + 
+    as.numeric(coeff_cvd[16])*input$hypdrug
+  # calculate the absolute risk RA
+  RA_f <- 1 - (as.numeric(coeff_cvd[8])^(exp(sum_m - as.numeric(coeff_cvd[9]))))
+  # calculate the relative risk RR
+  RR_f <- RA/0.03
+  
+  # return RR according to gender in input
+  RR <- if_else(input$gender == "m", RR_m, RR_f)
+  
+  return(RR)
+  
+}
+
+
+
 
 
 
